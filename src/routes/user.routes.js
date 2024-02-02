@@ -1,7 +1,9 @@
 import { Router } from "express";
 import {
-    changeCurrentPassword,
+    assignRole,
+  changeCurrentPassword,
   forgotPasswordRequest,
+  getCurrentUser,
   loginUser,
   refreshAccessToken,
   registerUser,
@@ -15,9 +17,12 @@ import {
   userForgotPasswordValidator,
   userResetForgottenPasswordValidator,
   userChangeCurrentPasswordValidator,
+  userAssignRoleValidator,
+  mongoIdPathVariableValidator,
 } from "../validators/user.validators.js";
 import { validate } from "../validators/validate.js";
-import { verifyJWT } from "../middlewares/auth.middlewares.js";
+import { verifyJWT, verifyPermission } from "../middlewares/auth.middlewares.js";
+import { UserRolesEnum } from "../constant.js";
 
 const router = Router();
 
@@ -37,7 +42,25 @@ router
     userResetForgottenPasswordValidator(),
     validate,
     resetForgottenPassword
-);
-router.route("/change-password").post(verifyJWT, userChangeCurrentPasswordValidator(), validate, changeCurrentPassword)
+  );
+router
+  .route("/change-password")
+  .post(
+    verifyJWT,
+    userChangeCurrentPasswordValidator(),
+    validate,
+    changeCurrentPassword
+  );
+router
+  .route("/assign-role/:userId")
+  .post(
+    verifyJWT,
+    verifyPermission([UserRolesEnum.USER]), // Only those with user role can change to admin, if it is UserRolesEnum.ADMIN] ONLY ADMIN CAN CHANGE TO USER
+    mongoIdPathVariableValidator("userId"),
+    userAssignRoleValidator(),
+    validate,
+    assignRole
+  );
+router.route("/current-user").get(verifyJWT, getCurrentUser);
 
 export default router;
