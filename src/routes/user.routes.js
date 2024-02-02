@@ -5,6 +5,7 @@ import {
   forgotPasswordRequest,
   getCurrentUser,
   loginUser,
+  logoutUser,
   refreshAccessToken,
   registerUser,
   resendEmailVerification,
@@ -62,5 +63,6 @@ router
     assignRole
   );
 router.route("/current-user").get(verifyJWT, getCurrentUser);
+router.route("/logout").post(verifyJWT, logoutUser);
 
 export default router;
