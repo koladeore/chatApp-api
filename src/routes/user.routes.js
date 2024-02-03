@@ -10,6 +10,7 @@ import {
   registerUser,
   resendEmailVerification,
   resetForgottenPassword,
+  updateUserAvatar,
   verifyEmail,
 } from "../controllers/user.controllers.js";
 import {
@@ -24,6 +25,7 @@ import {
 import { validate } from "../validators/validate.js";
 import { verifyJWT, verifyPermission } from "../middlewares/auth.middlewares.js";
 import { UserRolesEnum } from "../constant.js";
+import { upload } from "../middlewares/multer.middlewares.js";
 
 const router = Router();
 
@@ -64,5 +66,6 @@ router
   );
 router.route("/current-user").get(verifyJWT, getCurrentUser);
 router.route("/logout").post(verifyJWT, logoutUser);
+router.route("/avatar").patch(verifyJWT,upload.single("avatar"), updateUserAvatar)
 
 export default router;

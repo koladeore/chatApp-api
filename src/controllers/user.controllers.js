@@ -10,6 +10,11 @@ import {
   forgotPasswordMailgenContent,
   sendEmail,
 } from "../utils/mail.js";
+import {
+  getLocalPath,
+  getStaticFilePath,
+  removeLocalFile,
+} from "../utils/helpers.js";
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -284,7 +289,7 @@ const resetForgottenPassword = asyncHandler(async (req, res) => {
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-   // See if user with hash similar to resetToken exists
+  // See if user with hash similar to resetToken exists
   // If yes then check if token expiry is greater than current date
   const user = await User.findOne({
     forgotPasswordToken: hashedToken,
@@ -300,7 +305,7 @@ const resetForgottenPassword = asyncHandler(async (req, res) => {
   user.forgotPasswordExpiry = undefined;
   // set the provided password as the new password
   user.password = newPassword;
-  await  user.save({ validateBeforeSave: false });
+  await user.save({ validateBeforeSave: false });
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Password reset successfully"));
@@ -326,23 +331,25 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "Password changed successfully"));
 });
-const assignRole = asyncHandler(async (req,res) => {
+const assignRole = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const { role } = req.body;
   const user = await User.findById(userId);
-  if(!user){
+  if (!user) {
     throw new ApiError(404, "User does not exist");
   }
-  user.role = role
+  user.role = role;
   await user.save({ validateBeforeSave: false });
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Role changed for the user"));
-})
-const getCurrentUser = asyncHandler(async (req,res) => {
-  return res.status(200).json(new ApiResponse(200, req.user, "Current user fetched successfully"));
-})
-const logoutUser = asyncHandler(async (req,res) => {
+});
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
+});
+const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
@@ -355,13 +362,50 @@ const logoutUser = asyncHandler(async (req,res) => {
   const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-  }
+  };
   return res
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User logged out"));
-})
+});
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  // Check if user has uploaded an avatar
+  if (!req.file?.filename) {
+    throw new ApiError(400, "Avatar image is required");
+  }
+
+  // get avatar file system(external) url and local path
+  const avatarUrl = getStaticFilePath(req, req.file?.filename);
+  const avatarLocalPath = getLocalPath(req.file?.filename);
+
+  const user = await User.findById(req.user._id);
+
+  let updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+
+    {
+      $set: {
+        // set the newly uploaded avatar
+        avatar: {
+          url: avatarUrl,
+          localPath: avatarLocalPath,
+        },
+      },
+    },
+    { new: true }
+  ).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+  );
+
+  // remove the old avatar
+  removeLocalFile(user.avatar.localPath);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedUser, "Avatar updated successfully"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -373,5 +417,6 @@ export {
   resetForgottenPassword,
   assignRole,
   getCurrentUser,
-  logoutUser
+  logoutUser,
+  updateUserAvatar,
 };
