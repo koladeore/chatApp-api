@@ -10,6 +10,8 @@ import { fileURLToPath } from "url";
 import YAML from "yaml";
 import { errorHandler } from "./middlewares/error.middlewares.js";
 import userRouter from "./routes/user.routes.js";
+import session from "express-session";
+import passport from "passport";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,6 +51,15 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public")); // configure static file to save images locally
 app.use(cookieParser());
+
+// required for passport
+app.use(session({
+  secret: process.env.EXPRESS_SESSION_SECRET,
+  resave: true,
+  saveUninitialized: true,
+})); // session secret
+app.use(passport.initialize());
+app.use(passport.session()); // persistent login sessions
 
 app.use("/api/v1/users", userRouter);
 
