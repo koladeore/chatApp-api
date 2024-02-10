@@ -15,6 +15,7 @@ import passport from "passport";
 import { Server } from "socket.io";
 import chatRouter from "./routes/chat.routes.js";
 import messageRouter from "./routes/message.routes.js";
+import cors from "cors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,14 @@ const io = new Server(httpServer, {
 });
 
 app.set("io", io); // using set method to mount the `io` instance on the app to avoid usage of `global`
+
+// global middlewares
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+  })
+);
 
 app.use(requestIp.mw());
 
