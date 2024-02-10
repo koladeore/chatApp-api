@@ -12,6 +12,9 @@ import { errorHandler } from "./middlewares/error.middlewares.js";
 import userRouter from "./routes/user.routes.js";
 import session from "express-session";
 import passport from "passport";
+import { Server } from "socket.io";
+import chatRouter from "./routes/chat.routes.js";
+import messageRouter from "./routes/message.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +25,16 @@ const swaggerDocument = YAML.parse(file);
 const app = express();
 
 const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  pingTimeout: 60000,
+  cors: {
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+  },
+});
+
+app.set("io", io); // using set method to mount the `io` instance on the app to avoid usage of `global`
 
 app.use(requestIp.mw());
 
@@ -62,6 +75,8 @@ app.use(passport.initialize());
 app.use(passport.session()); // persistent login sessions
 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/chat-app/chats", chatRouter);
+app.use("/api/v1/chat-app/messages", messageRouter);
 
 // * API DOCS
 // ? Keeping swagger code at the end so that we can load swagger on "/" route
